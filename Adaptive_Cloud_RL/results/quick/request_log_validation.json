@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "request_log_files": 78,
+  "audited_request_records": 26387634,
+  "held_out_traces": 3,
+  "checks": [
+    "finite complete logs",
+    "FIFO starts",
+    "exact service accounting",
+    "deadline accounting",
+    "outcome partition",
+    "identical arrivals and service requirements across policies"
+  ]
+}

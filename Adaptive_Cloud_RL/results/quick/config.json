@@ -1,0 +1,87 @@
+{
+  "training": {
+    "episodes": 20,
+    "steps": 24,
+    "seeds": [
+      11,
+      22,
+      33,
+      44,
+      55
+    ],
+    "alpha": 0.1,
+    "gamma": 0.95,
+    "epsilon_initial": 1.0,
+    "epsilon_min": 0.05,
+    "epsilon_decay_fraction": 0.8,
+    "planning_steps": 10
+  },
+  "environment": {
+    "interval": 60.0,
+    "initial_instances": 2,
+    "queue_capacity": 6000,
+    "timeout": 10.0,
+    "mean_service_time": 0.01,
+    "sla_seconds": 0.2
+  },
+  "workload": {
+    "training": {
+      "low_range": [
+        60,
+        140
+      ],
+      "medium_range": [
+        160,
+        280
+      ],
+      "ramp_range": [
+        70,
+        430
+      ],
+      "peak_range": [
+        100,
+        470
+      ],
+      "burst_range": [
+        480,
+        720
+      ],
+      "segment_steps": [
+        8,
+        24
+      ]
+    },
+    "evaluation": {
+      "seeds": [
+        91001,
+        91002,
+        91003
+      ],
+      "patterns": [
+        "ramp",
+        "recurring",
+        "burst"
+      ],
+      "steps": 24
+    }
+  },
+  "baseline": {
+    "scale_out_threshold": 0.75,
+    "scale_in_threshold": 0.3,
+    "cooldown_steps": 1,
+    "scale_in_stabilization_steps": 2
+  },
+  "innovation": {
+    "beta": 0.3
+  },
+  "evaluation": {
+    "save_request_logs": true,
+    "stabilization_window": 50,
+    "stabilization_tolerance": 0.1
+  },
+  "quick": {
+    "episodes": 20,
+    "steps": 24,
+    "evaluation_steps": 24
+  }
+}

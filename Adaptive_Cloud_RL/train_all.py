@@ -1,6 +1,7 @@
 """Train all methods, evaluate frozen policies, and build reproducible artifacts."""
 import argparse
 from copy import deepcopy
+from datetime import datetime
 import hashlib
 import importlib.metadata
 import platform
@@ -73,9 +74,12 @@ def main(argv=None):
         config["training"].update(episodes=config["quick"]["episodes"], steps=config["quick"]["steps"])
         config["workload"]["evaluation"]["steps"] = config["quick"]["evaluation_steps"]
     output = args.output or ROOT/"results"/("quick" if args.quick else "full")
-    output.mkdir(parents=True, exist_ok=True)
     if (output/"manifest.json").exists():
-        raise SystemExit(f"Results already exist at {output}; use --output with a new directory to preserve previous runs.")
+        if args.output:
+            raise SystemExit(f"Results already exist at {output}; use --output with a new directory to preserve previous runs.")
+        output = output.with_name(output.name + "_" + datetime.now().strftime("%Y%m%d_%H%M%S_%f"))
+        print(f"Preserving previous results; this run will use {output}", flush=True)
+    output.mkdir(parents=True, exist_ok=True)
     settings = config["training"]
     if settings["episodes"] < 1 or settings["steps"] < 1 or len(set(settings["seeds"])) < 5:
         raise ValueError("Use positive training budgets and at least five distinct seeds")
@@ -136,16 +140,21 @@ def main(argv=None):
     write_csv(output/"training_metrics.csv", training)
     write_json(output/"seed_metrics.json", rows)
     write_csv(output/"comparison.csv", summarize_seed_rows(rows))
-    manifest.update(status="complete", experiment_seconds=perf_counter()-started,
+    manifest.update(status="evaluated", experiment_seconds=perf_counter()-started,
                     baseline_replication="One deterministic evaluation copied across training seed labels; SD=0 is not independent replication.")
     write_json(output/"manifest.json", manifest)
     from compare_results import compare
     compare(output)
+    manifest["status"] = "complete"
+    write_json(output/"manifest.json", manifest)
     (ROOT/"results").mkdir(exist_ok=True)
-    (ROOT/"results"/"latest.txt").write_text(str(output.resolve()), encoding="utf-8")
+    try:
+        latest_path = output.resolve().relative_to(ROOT).as_posix()
+    except ValueError:
+        latest_path = str(output.resolve())
+    (ROOT/"results"/"latest.txt").write_text(latest_path, encoding="utf-8")
     print(f"Complete: {output.resolve()}", flush=True)
 
 
 if __name__ == "__main__":
     main()
-

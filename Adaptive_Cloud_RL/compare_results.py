@@ -61,12 +61,19 @@ def compare(output):
         lines.append("| "+r["algorithm"]+" | "+" | ".join(f"{r[k+'_mean']:.4f} ± {r[k+'_std']:.4f}" if r[k+'_mean'] is not None else "Not observed" for k in keys)+" |")
     means = {key: float(np.mean([r[key] for r in deltas])) for key in deltas[0] if key != "seed"}
     s = next(r for r in summary if r["algorithm"] == "Predictive Q-Learning")
+    base = next(r for r in summary if r["algorithm"] == "Q-Learning")
+    cost_change_percent = 100*means["instance_seconds"]/base["instance_seconds_mean"]
+    sla_limit_ms = json.loads((output/"config.json").read_text())["environment"]["sla_seconds"]*1000
+    meeting = [r["algorithm"] for r in summary if r["p95_response_time_ms_mean"] is not None
+               and r["p95_response_time_ms_mean"] <= sla_limit_ms]
     lines.extend(["", "## Predictive experiment", "",
                   f"Predictive minus standard Q-learning, paired mean differences: reward {means['mean_reward']:+.4f}; instance-seconds {means['instance_seconds']:+.1f}; overall SLA violation fraction {means['sla_violation_fraction']:+.6f}; startup-arrival violation fraction of the complete cohort {means['startup_violation_cohort_fraction']:+.6f}.", "",
                   f"Forecast MAE: {s['forecast_mae_rps_mean']:.3f} req/s; RMSE: {s['forecast_rmse_rps_mean']:.3f} req/s. Forecast errors are identical across policies because the predictor uses exogenous measured arrivals only.", "",
+                  f"The predictive policy changes mean resource cost by {cost_change_percent:+.2f}% and overall violations by {100*means['sla_violation_fraction']:+.2f} percentage points. No maximum acceptable cost increase was specified, so cost acceptability cannot be declared from these differences alone.", "",
                   "Startup-associated violations refer to requests arriving while new capacity is unavailable, followed to resolution. This association does not isolate the causal effect of the delay. Consult both conditional startup violation rate and startup exposure counts in the CSV, since policies request different amounts of startup.", "",
                   "## Interpretation", "",
                   "Use reward together with cost, SLA failures and completed-request latency. High reward alone does not establish deployment suitability. The above differences are descriptive, without a statistical significance claim.", "",
+                  (f"Policies whose mean completed-request p95 meets {sla_limit_ms:g} ms: "+", ".join(meeting)+". Individual seed and trace results still need inspection.") if meeting else f"None of the policies meets the {sla_limit_ms:g} ms target on its across-seed mean pooled completed-request p95 in this run. High demand and startup delays produce substantial failures; these results do not demonstrate service-target compliance.", "",
                   "Stabilization uses two adjacent 50-episode windows and requires persistent mean changes at most 0.10 reward units and within-window SD at most 0.5. Missing values mean not observed within the budget; a 20-episode quick run cannot satisfy this criterion.", "",
                   "Full-budget results: [PENDING — run python train_all.py and use that output directory.]" if mode.startswith("quick") else "These are full configured-budget results; assess limitations and seed coverage before drawing broad conclusions."])
     content = "\n".join(lines)+"\n"
@@ -89,7 +96,14 @@ def main():
     parser.add_argument("--results", type=Path)
     args = parser.parse_args()
     latest = ROOT/"results"/"latest.txt"
-    output = args.results or (Path(latest.read_text(encoding="utf-8").strip()) if latest.exists() else ROOT/"results"/"quick")
+    if args.results:
+        output = args.results
+    elif latest.exists():
+        output = Path(latest.read_text(encoding="utf-8").strip())
+        if not output.is_absolute():
+            output = ROOT/output
+    else:
+        output = ROOT/"results"/"quick"
     compare(output)
 
 

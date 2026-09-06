@@ -46,7 +46,10 @@ def request_trace(rates, seed, interval=60., mean_service_time=.01):
     Separate RNG streams keep each request's service requirement identical for
     every policy, regardless of rejection, timeout or server assignment.
     """
-    arrival_seed, service_seed = np.random.SeedSequence(seed).spawn(2)
+    sequence = seed if isinstance(seed, np.random.SeedSequence) else np.random.SeedSequence(seed)
+    # Do not mutate a caller-owned SeedSequence's child counter on reset.
+    sequence = np.random.SeedSequence(sequence.entropy, spawn_key=sequence.spawn_key)
+    arrival_seed, service_seed = sequence.spawn(2)
     rng = np.random.default_rng(arrival_seed)
     counts = rng.poisson(np.asarray(rates) * interval)
     batches = [np.sort(rng.uniform(0, interval, int(n))) + (i - 1) * interval
@@ -54,4 +57,3 @@ def request_trace(rates, seed, interval=60., mean_service_time=.01):
     arrivals = np.concatenate(batches)
     service = np.random.default_rng(service_seed).exponential(mean_service_time, len(arrivals))
     return arrivals, service
-

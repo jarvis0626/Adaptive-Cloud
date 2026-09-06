@@ -43,7 +43,7 @@ def generate_plots(output, summary, mode):
         ax.set(xlabel="Training episode", ylabel="Mean reward / control step", title=f"{name}: raw training reward ({mode})")
         ax.legend(ncol=3)
         save(fig, target/f"reward_{slug(name)}.png")
-        window = min(50, max(2, values.shape[1]//5))
+        window = min(values.shape[1], 50, max(2, values.shape[1]//5))
         smooth = np.array([moving_average(v, window) for v in values])
         sx = x[window-1:]
         mean, std = smooth.mean(axis=0), smooth.std(axis=0, ddof=1)
@@ -103,4 +103,3 @@ def generate_plots(output, summary, mode):
     table.scale(1, 2)
     ax.set_title(f"Frozen-policy comparison: mean ± sample SD across training seeds ({mode})", pad=22)
     save(fig, output/"comparison.png")
-

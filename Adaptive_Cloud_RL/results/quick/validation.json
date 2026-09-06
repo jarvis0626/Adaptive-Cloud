@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "seed_rows": 30,
+  "q_tables": 25,
+  "figures": 22,
+  "checks": [
+    "finite numeric datasets",
+    "nonempty tables",
+    "cohort conservation",
+    "all Q-tables updated",
+    "frozen evaluation Q and RNG assertions executed during evaluation"
+  ]
+}
